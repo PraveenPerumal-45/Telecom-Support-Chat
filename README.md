@@ -1,344 +1,126 @@
-# 📡 Telecom Customer Support AI Assistant
+# RAG Telecom Chatbot
 
-An AI-powered Telecom Customer Support Assistant that answers customer queries using **Retrieval-Augmented Generation (RAG)**.
+A Retrieval-Augmented Generation (RAG) customer care chatbot for telecom support. It answers questions about mobile connectivity, billing, SIM issues, and roaming by retrieving relevant context from three knowledge sources and generating responses with Qwen3-32B via Groq.
 
-Instead of relying on the LLM's internal knowledge, the assistant retrieves relevant information from multiple knowledge sources—including FAQs, resolved support tickets, and technical documentation—before generating an answer.
+## Architecture
 
-The assistant also includes **source citations**, **confidence-based retrieval**, and **safe fallback responses** to reduce hallucinations.
-
----
-
-## Demo
-
-> *(Add screenshots or GIFs here)*
-
-### Chat Interface
-
-![Chat Screenshot](images/chat.png)
-
-### Source Citations
-
-![Citations](images/citations.png)
-
-### Confidence-Based Retrieval
-
-![Confidence](images/confidence.png)
-
----
-
-# Features
-
-- Multi-source Retrieval-Augmented Generation (RAG)
-- Semantic search using Chroma Vector Database
-- FAQ retrieval
-- Resolved support ticket retrieval
-- Telecom PDF guide retrieval
-- Source citations in every response
-- Confidence-based retrieval scoring
-- Automatic fallback when confidence is low
-- Hallucination reduction
-- Groq Qwen3-32B integration
-- Interactive Streamlit chat interface
-
----
-
-# Architecture
-
-```text
-                User
-                  │
-                  ▼
-          Streamlit Interface
-                  │
-                  ▼
-       retrieve_with_confidence()
-                  │
-      ┌───────────┼────────────┐
-      ▼           ▼            ▼
-   FAQ DB     Ticket DB    Guide DB
-      │           │            │
-      └───────────┼────────────┘
-                  ▼
-          Merge & Rank Results
-                  │
-          Confidence Evaluation
-                  │
-         ┌────────┴────────┐
-         ▼                 ▼
-  High Confidence     Low Confidence
-         │                 │
-         ▼                 ▼
-     Generate Answer    Safe Fallback
-         │
-         ▼
-     Response + Sources
+```
+User question
+     │
+     ▼
+Merged Retriever (top-k from each store)
+  ├── ChromaDB · faq        (FAQ entries from CSV)
+  ├── ChromaDB · tickets    (resolved support tickets from SQLite)
+  └── ChromaDB · guides     (PDF guide chunks)
+     │
+     ▼
+ChatPromptTemplate → Qwen3-32B (Groq) → Answer
 ```
 
----
+**Embedding model:** `sentence-transformers/all-MiniLM-L6-v2` (runs locally via HuggingFace)  
+**LLM:** `qwen/qwen3-32b` served by [Groq](https://groq.com)
 
-# Knowledge Sources
+## Project Structure
 
-The assistant retrieves information from three independent sources.
-
-## FAQ Dataset
-
-Contains structured customer questions and answers.
-
-Examples:
-
-- International Roaming
-- Billing
-- Wi-Fi Calling
-- SIM Activation
-- VoLTE
-- Mobile Data
-
----
-
-## Support Tickets
-
-Contains previously resolved customer support tickets.
-
-Examples:
-
-- SIM Not Detected
-- Call Drops
-- Slow Internet
-- VoLTE Compatibility
-- Roaming Issues
-
----
-
-## Telecom Technical Guide
-
-A PDF technical reference containing:
-
-- Mobile Networks
-- APN Configuration
-- VoLTE
-- VoWiFi
-- IMS
-- Roaming
-- LTE
-- Network Troubleshooting
-
----
-
-# Tech Stack
-
-| Category | Technology |
-|-----------|------------|
-| Language | Python |
-| LLM | Groq (Qwen3-32B) |
-| Framework | LangChain |
-| Vector Database | ChromaDB |
-| Embeddings | HuggingFace MiniLM |
-| UI | Streamlit |
-| PDF Processing | PyPDF |
-| Data Storage | SQLite |
-| Environment | dotenv |
-
----
-
-# Project Structure
-
-```text
-telecom-chatbot/
-│
-├── app.py
-├── rag_chain.py
-├── retriever.py
-│
-├── ingest_faq.py
-├── ingest_pdf.py
-├── ingest_tickets.py
-│
-├── chroma_store/
-│
+```
+rag-telecom-chatbot/
+├── app.py              # Streamlit web UI
+├── main.py             # CLI entry point
+├── rag_chain.py        # Builds the LangChain RAG chain
+├── retriever.py        # Merges the three Chroma retrievers
+├── ingest_faq.py       # Loads data/faq.csv → Chroma 'faq' collection
+├── ingest_tickets.py   # Loads data/tickets.db → Chroma 'tickets' collection
+├── ingest_pdf.py       # Loads data/telecom_guide.pdf → Chroma 'guides' collection
 ├── data/
-│   ├── faq.csv
-│   ├── telecom_guide.pdf
-│   └── tickets.db
-│
-├── requirements.txt
-└── README.md
+│   ├── faq.csv             # FAQ question/answer pairs
+│   ├── tickets.db          # SQLite database of resolved support tickets
+│   ├── telecom_guide.pdf   # Telecom user guide (chunked at ingest)
+│   ├── seed_tickets.py     # Script to seed the tickets database
+│   └── generate_pdf.py     # Script to generate the telecom guide PDF
+├── chroma_store/       # Persisted Chroma vector database (created at ingest)
+├── pyproject.toml
+├── uv.lock
+└── .env.example
 ```
 
----
+## Prerequisites
 
-# Retrieval Pipeline
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
+- A [Groq API key](https://console.groq.com)
+- A [HuggingFace token](https://huggingface.co/settings/tokens) (for downloading the embedding model)
 
-The assistant performs the following steps:
+## Setup
 
-1. Receive the user question.
-2. Search the FAQ vector database.
-3. Search the Support Ticket vector database.
-4. Search the Telecom Guide vector database.
-5. Merge retrieved documents.
-6. Rank results by semantic similarity.
-7. Evaluate retrieval confidence.
-8. Generate an answer using Groq Qwen3-32B.
-9. Return source citations.
-
----
-
-# Confidence-Based Retrieval
-
-The assistant evaluates retrieval quality before generating a response.
-
-If confidence is low, the LLM is skipped entirely to reduce hallucinations.
-
-Example fallback:
-
-```
-I couldn't find enough information in the Telecom knowledge base.
-
-Please contact customer support at 611
-or use the MyTelecom app.
-```
-
----
-
-# Source Citations
-
-Each answer includes citations indicating where the information originated.
-
-Example:
-
-```
-Sources
-
-• FAQ #22
-
-• Support Ticket TK-011
-
-• Telecom Guide (Page 7)
-```
-
----
-
-# Example Questions
-
-```
-How do I activate international roaming?
-
-How do I enable Wi-Fi Calling?
-
-My SIM isn't detected.
-
-Why is my mobile data slow?
-
-My calls keep dropping.
-
-I was charged for roaming even though I had a bundle.
-
-What is VoLTE?
-
-Explain APN settings.
-
-How do I unlock my phone for another carrier?
-```
-
----
-
-# Installation
-
-Clone the repository.
+**1. Clone and install dependencies**
 
 ```bash
-git clone https://github.com/<your-username>/telecom-support-ai.git
+git clone <repo-url>
+cd rag-telecom-chatbot
+uv sync          # or: pip install -e .
 ```
 
-Navigate into the project.
+**2. Configure environment variables**
 
 ```bash
-cd telecom-support-ai
+cp .env.example .env
 ```
 
-Create a virtual environment.
+Edit `.env` and fill in your keys:
 
-```bash
-python -m venv .venv
+```
+GROQ_API_KEY=your_groq_api_key_here
+HF_TOKEN=your_huggingface_token_here
 ```
 
-Activate the environment.
+**3. Ingest data into Chroma**
 
-Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-Install dependencies.
-
-```bash
-pip install -r requirements.txt
-```
-
-Create a `.env` file.
-
-```env
-GROQ_API_KEY=your_groq_api_key
-```
-
----
-
-# Build the Knowledge Base
-
-Run the ingestion scripts.
+Run the three ingestion scripts once to build the vector store:
 
 ```bash
 python ingest_faq.py
-```
-
-```bash
+python ingest_tickets.py
 python ingest_pdf.py
 ```
 
-```bash
-python ingest_tickets.py
-```
+Each script embeds the source data and persists it to `chroma_store/`. Re-run a script only when its source data changes.
 
----
+## Running the App
 
-# Run the Application
+**Streamlit web UI**
 
 ```bash
 streamlit run app.py
 ```
 
----
+Opens at `http://localhost:8501`. The sidebar has one-click sample questions and a button to clear the conversation history.
 
-# Future Improvements
+**CLI**
 
-- Conversation memory for follow-up questions
-- Hybrid keyword + vector search
-- Query rewriting
-- Cross-encoder reranking
-- Multi-turn conversational retrieval
-- Streaming LLM responses
-- Evaluation framework (RAGAS / DeepEval)
-- Admin dashboard for knowledge management
+```bash
+python main.py
+```
 
----
+Interactive prompt — type a question and press Enter. Type `quit` to exit.
 
-# Key Learning Outcomes
+## Data Sources
 
-This project demonstrates practical experience with:
+| Collection | Source file | Granularity |
+|---|---|---|
+| `faq` | `data/faq.csv` | 1 document per FAQ row |
+| `tickets` | `data/tickets.db` | 1 document per resolved ticket |
+| `guides` | `data/telecom_guide.pdf` | Chunks of 600 chars with 100-char overlap |
 
-- Retrieval-Augmented Generation (RAG)
-- LangChain pipelines
-- Vector databases
-- Semantic search
-- Prompt engineering
-- Confidence-aware retrieval
-- Hallucination mitigation
-- Source attribution
-- AI application development
-- LLM integration with external knowledge
+The retriever fetches the top 3 results from each collection (9 context documents total) for every query.
 
----
+## Regenerating Seed Data
 
-## License
+```bash
+# Seed the SQLite ticket database
+python data/seed_tickets.py
 
-This project is intended for educational and portfolio purposes.
+# Regenerate the PDF guide
+python data/generate_pdf.py
+```
+
+After regenerating, re-run the corresponding ingest script.

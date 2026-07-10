@@ -113,14 +113,25 @@ Interactive prompt — type a question and press Enter. Type `quit` to exit.
 
 The retriever fetches the top 3 results from each collection (9 context documents total) for every query.
 
-## Regenerating Seed Data
+Images:
+<img width="1917" height="908" alt="image" src="https://github.com/user-attachments/assets/459d67f1-a98a-455c-8369-d6066507c36f" />
 
-```bash
-# Seed the SQLite ticket database
-python data/seed_tickets.py
+<img width="1917" height="866" alt="image" src="https://github.com/user-attachments/assets/05b37f9d-0841-4adc-9277-46f52a82e31d" />
 
-# Regenerate the PDF guide
-python data/generate_pdf.py
-```
+<img width="1917" height="850" alt="image" src="https://github.com/user-attachments/assets/02560f09-3625-48cc-99e4-122ddef33e3a" />
 
-After regenerating, re-run the corresponding ingest script.
+---
+
+## 👨‍💻 Author
+
+**Praveen Perumal**
+
+- LinkedIn: [*Praveen Perumal*](https://www.linkedin.com/in/praveen-perumal/)
+- GitHub: https://github.com/PraveenPerumal-45
+
+---
+
+## ⭐ If you found this project useful, consider giving it a star!
+
+
+
